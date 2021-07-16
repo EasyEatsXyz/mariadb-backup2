@@ -12,7 +12,7 @@ encryption_key_file="${parent_dir}/encryption_key"
 use_compression=1
 now="$(date +%m-%d-%Y_%H-%M-%S)"
 processors="$(nproc --all)"
-space_treshhold_kb=52428800
+space_treshold_kb=52428800
 
 # Use this to echo to standard error
 error () {
@@ -32,7 +32,7 @@ sanity_check () {
         error "Another process working"
     fi
 
-    if [ `df ${parent_dir} | awk '/[0-9]%/{print $(NF-2)}'` -lt ${space_treshhold_kb} ]; then
+    if [ `df ${parent_dir} | awk '/[0-9]%/{print $(NF-2)}'` -lt ${space_treshold_kb} ]; then
         error "Not enough space";
     fi
 }
