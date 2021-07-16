@@ -2,15 +2,17 @@
 
 export LC_ALL=C
 
-days_of_backups=3  # Must be less than 7
+days_of_backups=3
 backup_owner="backup"
-parent_dir="/backups/mysql"
-defaults_file="/etc/mysql/backup.cnf"
-todays_dir="${parent_dir}/$(date +%a)"
+parent_dir="/var/backup/mysql"
+defaults_file="/var/backup/.my.cnf"
+todays_dir="${parent_dir}/$(date +%Y-%m-%d)"
 log_file="${todays_dir}/backup-progress.log"
 encryption_key_file="${parent_dir}/encryption_key"
+use_compression=1
 now="$(date +%m-%d-%Y_%H-%M-%S)"
 processors="$(nproc --all)"
+space_treshhold_kb=52428800
 
 # Use this to echo to standard error
 error () {
@@ -25,27 +27,24 @@ sanity_check () {
     if [ "$(id --user --name)" != "$backup_owner" ]; then
         error "Script can only be run as the \"$backup_owner\" user"
     fi
-    
-    # Check whether the encryption key file is available
-    if [ ! -r "${encryption_key_file}" ]; then
-        error "Cannot read encryption key at ${encryption_key_file}"
+
+    if [ -f "${todays_dir}/.lock" ]; then
+        error "Another process working"
+    fi
+
+    if [ `df ${parent_dir} | awk '/[0-9]%/{print $(NF-2)}'` -lt ${space_treshhold_kb} ]; then
+        error "Not enough space";
     fi
 }
 
 set_options () {
-    # List the xtrabackup arguments
-    xtrabackup_args=(
+    # List the mariabackup arguments
+    mariabackup_args=(
         "--defaults-file=${defaults_file}"
-        "--backup"
         "--extra-lsndir=${todays_dir}"
-        "--compress"
+        "--backup"
         "--stream=xbstream"
-        "--encrypt=AES256"
-        "--encrypt-key-file=${encryption_key_file}"
         "--parallel=${processors}"
-        "--compress-threads=${processors}"
-        "--encrypt-threads=${processors}"
-        "--slave-info"
     )
     
     backup_type="full"
@@ -60,29 +59,47 @@ set_options () {
 }
 
 rotate_old () {
-    # Remove the oldest backup in rotation
-    day_dir_to_remove="${parent_dir}/$(date --date="${days_of_backups} days ago" +%a)"
-
-    if [ -d "${day_dir_to_remove}" ]; then
-        rm -rf "${day_dir_to_remove}"
+    if [ ${days_of_backups} -gt 0 ]; then
+        find ${parent_dir} -maxdepth 1 -ctime +${days_of_backups} -type d -exec rm -rf {} \;
     fi
 }
 
 take_backup () {
     # Make sure today's backup directory is available and take the actual backup
     mkdir -p "${todays_dir}"
+    touch "${todays_dir}/.lock"
     find "${todays_dir}" -type f -name "*.incomplete" -delete
-    xtrabackup "${xtrabackup_args[@]}" --target-dir="${todays_dir}" > "${todays_dir}/${backup_type}-${now}.xbstream.incomplete" 2> "${log_file}"
+
+    base_name="${todays_dir}/${backup_type}-${now}.xbstream"
+    if [ -r ${encryption_key_file} ] && [ ${use_compression} -gt 0 ]; then
+        full_name="${base_name}.gz.enc"
+        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | gzip | openssl enc -aes-256-cbc -kfile ${encryption_key_file} > "${full_name}.incomplete"
+    elif [ -r ${encryption_key_file} ]; then
+        full_name="${base_name}.enc"
+        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | openssl enc -aes-256-cbc -kfile ${encryption_key_file} > "${full_name}.incomplete"
+    elif [ ${use_compression} -gt 0 ]; then
+        full_name="${base_name}.gz"
+        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | gzip > "${full_name}.incomplete"
+    else
+        full_name="${base_name}"
+        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" > "${full_name}.incomplete"
+    fi
     
-    mv "${todays_dir}/${backup_type}-${now}.xbstream.incomplete" "${todays_dir}/${backup_type}-${now}.xbstream"
+    mv "${full_name}.incomplete" "${full_name}"
+
+    rm "${todays_dir}/.lock"
 }
 
-sanity_check && set_options && rotate_old && take_backup
+main () {
+    cd && sanity_check && set_options && rotate_old && take_backup
 
-# Check success and print message
-if tail -1 "${log_file}" | grep -q "completed OK"; then
-    printf "Backup successful!\n"
-    printf "Backup created at %s/%s-%s.xbstream\n" "${todays_dir}" "${backup_type}" "${now}"
-else
-    error "Backup failure! Check ${log_file} for more information"
-fi
+    # Check success and print message
+    if tail -1 "${log_file}" | grep -q "completed OK"; then
+        printf "Backup successful!\n"
+        printf "Backup created at %s\n" "${full_name}"
+    else
+        error "Backup failure! Check ${log_file} for more information"
+    fi
+}
+
+main
