@@ -2,33 +2,31 @@
 
 export LC_ALL=C
 
-days_of_backups=3
-backup_owner="backup"
-parent_dir="/var/backup/mysql"
-defaults_file="/var/backup/.my.cnf"
-todays_dir="${parent_dir}/$(date +%Y-%m-%d)"
+source "$(dirname "$0")/config.inc"
+source "$(dirname "$0")/common.inc"
+
 log_file="${todays_dir}/backup-progress.log"
-encryption_key_file="${parent_dir}/encryption_key"
-use_compression=1
-now="$(date +%m-%d-%Y_%H-%M-%S)"
-processors="$(nproc --all)"
-space_treshold_kb=52428800
 
-# Use this to echo to standard error
-error () {
-    printf "%s: %s\n" "$(basename "${BASH_SOURCE}")" "${1}" >&2
-    exit 1
+parse_args () {
+    for i in "$@"
+    do
+        case $i in
+            -f|--force)
+            force=1
+            ;;
+            *)
+                # unknown option
+                # echo $i
+            ;;
+        esac
+    done
 }
-
-trap 'error "An unexpected error occurred."' ERR
 
 sanity_check () {
     # Check user running the script
-    if [ "$(id --user --name)" != "$backup_owner" ]; then
-        error "Script can only be run as the \"$backup_owner\" user"
-    fi
+    check_user
 
-    if [ -f "${todays_dir}/.lock" ]; then
+    if [ ! ${force} ] && [ -f "${todays_dir}/.lock" ]; then
         error "Another process working"
     fi
 
@@ -46,6 +44,16 @@ set_options () {
         "--stream=xbstream"
         "--parallel=${processors}"
     )
+
+    if [ $(mysql --defaults-file=${defaults_file} -e "SHOW SLAVE STATUS\G" | wc -l) -ne 0 ]; then
+        mariabackup_args+=( "--slave-info" )
+    fi
+
+    openssl_args=(
+        "-aes-256-cbc"
+        "-kfile"
+        "${encryption_key_file}"
+    )
     
     backup_type="full"
 
@@ -54,7 +62,7 @@ set_options () {
     if grep -q -s "to_lsn" "${todays_dir}/xtrabackup_checkpoints"; then
         backup_type="incremental"
         lsn=$(awk '/to_lsn/ {print $3;}' "${todays_dir}/xtrabackup_checkpoints")
-        xtrabackup_args+=( "--incremental-lsn=${lsn}" )
+        mariabackup_args+=( "--incremental-lsn=${lsn}" )
     fi
 }
 
@@ -73,25 +81,23 @@ take_backup () {
     base_name="${todays_dir}/${backup_type}-${now}.xbstream"
     if [ -r ${encryption_key_file} ] && [ ${use_compression} -gt 0 ]; then
         full_name="${base_name}.gz.enc"
-        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | gzip | openssl enc -aes-256-cbc -kfile ${encryption_key_file} > "${full_name}.incomplete"
+        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | gzip | openssl enc "${openssl_args[@]}" > "${full_name}.incomplete"
     elif [ -r ${encryption_key_file} ]; then
         full_name="${base_name}.enc"
-        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | openssl enc -aes-256-cbc -kfile ${encryption_key_file} > "${full_name}.incomplete"
+        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | openssl enc "${openssl_args[@]}" > "${full_name}.incomplete"
     elif [ ${use_compression} -gt 0 ]; then
         full_name="${base_name}.gz"
         mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | gzip > "${full_name}.incomplete"
     else
         full_name="${base_name}"
         mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" > "${full_name}.incomplete"
-    fi
-    
-    mv "${full_name}.incomplete" "${full_name}"
+    fi && mv "${full_name}.incomplete" "${full_name}"
 
     rm "${todays_dir}/.lock"
 }
 
 main () {
-    cd && sanity_check && set_options && rotate_old && take_backup
+    cd && parse_args $@ && sanity_check && set_options && rotate_old && take_backup
 
     # Check success and print message
     if tail -1 "${log_file}" | grep -q "completed OK"; then
@@ -102,4 +108,4 @@ main () {
     fi
 }
 
-main
+main $@
