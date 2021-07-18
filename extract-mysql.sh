@@ -40,12 +40,12 @@ do_extraction () {
         # Extract the directory structure from the backup file
         mkdir --verbose -p "${restore_dir}"
 
-        if [ -r ${encryption_key_file} ] && [ ${use_compression} -gt 0 ]; then
-            openssl enc -d "${openssl_args[@]}" -in "${file}" | gzip -d | mbstream "${mbstream_args[@]}" -x -C "${restore_dir}"
+        if [ -r ${encryption_key_file} ] && [ ! -z ${compression_tool} ]; then
+            openssl enc -d "${openssl_args[@]}" -in "${file}" | "${compression_tool}" -d | mbstream "${mbstream_args[@]}" -x -C "${restore_dir}"
         elif [ -r ${encryption_key_file} ]; then
             openssl enc -d "${openssl_args[@]}" -in "${file}" | mbstream "${mbstream_args[@]}" -x -C "${restore_dir}"
-        elif [ ${use_compression} -gt 0 ]; then
-            gunzip -c "${file}" | mbstream "${mbstream_args[@]}" -x -C "${restore_dir}"
+        elif [ ! -z ${compression_tool} ]; then
+            "${compression_tool}" -dc "${file}" | mbstream "${mbstream_args[@]}" -x -C "${restore_dir}"
         else
             mbstream "${mbstream_args[@]}" -x -C "${restore_dir}"
         fi

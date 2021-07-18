@@ -79,15 +79,15 @@ take_backup () {
     find "${todays_dir}" -type f -name "*.incomplete" -delete
 
     base_name="${todays_dir}/${backup_type}-${now}.xbstream"
-    if [ -r ${encryption_key_file} ] && [ ${use_compression} -gt 0 ]; then
+    if [ -r ${encryption_key_file} ] && [ ! -z ${compression_tool} ]; then
         full_name="${base_name}.gz.enc"
-        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | gzip | openssl enc "${openssl_args[@]}" > "${full_name}.incomplete"
+        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | "${compression_tool}" | openssl enc "${openssl_args[@]}" > "${full_name}.incomplete"
     elif [ -r ${encryption_key_file} ]; then
         full_name="${base_name}.enc"
         mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | openssl enc "${openssl_args[@]}" > "${full_name}.incomplete"
-    elif [ ${use_compression} -gt 0 ]; then
+    elif [ ! -z ${compression_tool} ]; then
         full_name="${base_name}.gz"
-        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | gzip > "${full_name}.incomplete"
+        mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" | "${compression_tool}" > "${full_name}.incomplete"
     else
         full_name="${base_name}"
         mariabackup "${mariabackup_args[@]}" "--target-dir=${todays_dir}" 2> "${log_file}" > "${full_name}.incomplete"

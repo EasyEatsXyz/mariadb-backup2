@@ -4,7 +4,7 @@ days_of_backups=3
 backup_owner="backup"
 parent_dir="/var/backup/mysql"
 defaults_file="/var/backup/.my.cnf"
-use_compression=1
+compression_tool="pigz"
 space_treshold_kb=5242880
 
 todays_dir="${parent_dir}/$(date +%Y-%m-%d)"
