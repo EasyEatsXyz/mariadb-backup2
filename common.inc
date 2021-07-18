@@ -3,7 +3,7 @@
 # Use this to echo to standard error
 error () {
     rm -f "${todays_dir}/.lock"
-    printf "%s: %s\n" "$(basename "${BASH_SOURCE}")" "${1}" >&2
+    printf "%s: %s\n" "$(basename "${0}")" "${1}" >&2
     exit 1
 }
 
