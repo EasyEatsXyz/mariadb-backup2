@@ -57,19 +57,19 @@ main () {
 
     First, stop MySQL and move or remove the contents of the MySQL data directory:
         
-            sudo systemctl stop mysql
+            sudo systemctl stop mariadb
             sudo mv /var/lib/mysql/ /tmp/
         
     Then, recreate the data directory and  copy the backup files:
         
             sudo mkdir /var/lib/mysql
-            sudo mariabackup --copy-back ${PWD}/$(basename "${full_backup_dir}")
+            sudo mariabackup --copy-back --target-dir=${1}/$(basename "${full_backup_dir}")
         
     Afterward the files are copied, adjust the permissions and restart the service:
         
             sudo chown -R mysql:mysql /var/lib/mysql
             sudo find /var/lib/mysql -type d -exec chmod 755 {} \\;
-            sudo systemctl start mysql
+            sudo systemctl start mariadb
 EOF
     else
         error "It looks like something went wrong.  Check the \"${log_file}\" file for more information."
