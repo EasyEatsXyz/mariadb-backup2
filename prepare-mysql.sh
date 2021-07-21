@@ -9,7 +9,7 @@ log_file="prepare-progress.log"
 
 sanity_check () {
     # Check user running the script
-    check_user
+    # check_user
 
     if [ "${number_of_args}" -lt 1 ]; then
         error "Script requires restore directory as an argument."

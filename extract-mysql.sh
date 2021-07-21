@@ -9,7 +9,7 @@ log_file="extract-progress.log"
 
 sanity_check () {
     # Check user running the script
-    check_user
+    # check_user
     
     # Check whether any arguments were passed
     if [ "${number_of_args}" -lt 1 ]; then
