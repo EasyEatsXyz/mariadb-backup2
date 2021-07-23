@@ -2,8 +2,21 @@
 
 export LC_ALL=C
 
-source "$(dirname "$0")/config.inc"
-source "$(dirname "$0")/common.inc"
+if [ -r "$(dirname "$0")/config.inc" ]; then
+    source "$(dirname "$0")/config.inc"
+elif [ -r "/var/lib/backup-mysql/config.inc" ]; then
+    source "/var/lib/backup-mysql/config.inc"
+else
+    error "Can not find config.inc"
+fi
+
+if [ -r "$(dirname "$0")/common.inc" ]; then
+    source "$(dirname "$0")/common.inc"
+elif [ -r "/etc/backup-mysql/common.inc" ]; then
+    source "/etc/backup-mysql/common.inc"
+else
+    error "Can not find common.inc"
+fi
 
 log_file="prepare-progress.log"
 
@@ -63,7 +76,7 @@ main () {
     Then, recreate the data directory and  copy the backup files:
         
             sudo mkdir /var/lib/mysql
-            sudo mariabackup --copy-back --target-dir=${1}/$(basename "${full_backup_dir}")
+            sudo mariabackup --copy-back --target-dir=${1}$(basename "${full_backup_dir}")
         
     Afterward the files are copied, adjust the permissions and restart the service:
         

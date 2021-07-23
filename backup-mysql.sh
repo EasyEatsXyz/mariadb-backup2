@@ -2,8 +2,21 @@
 
 export LC_ALL=C
 
-source "$(dirname "$0")/config.inc"
-source "$(dirname "$0")/common.inc"
+if [ -r "$(dirname "$0")/config.inc" ]; then
+    source "$(dirname "$0")/config.inc"
+elif [ -r "/var/lib/backup-mysql/config.inc" ]; then
+    source "/var/lib/backup-mysql/config.inc"
+else
+    error "Can not find config.inc"
+fi
+
+if [ -r "$(dirname "$0")/common.inc" ]; then
+    source "$(dirname "$0")/common.inc"
+elif [ -r "/etc/backup-mysql/common.inc" ]; then
+    source "/etc/backup-mysql/common.inc"
+else
+    error "Can not find common.inc"
+fi
 
 log_file="${todays_dir}/backup-progress.log"
 
