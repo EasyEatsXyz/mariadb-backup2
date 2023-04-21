@@ -4,6 +4,10 @@ This repository contains a few scripts for automating backups with mariabackup. 
 
 Please check and follow the instructions below. Original instructions are taken from <a href="https://www.digitalocean.com/community/tutorials/how-to-configure-mysql-backups-with-percona-xtrabackup-on-ubuntu-16-04">here</a>.
 
+## Prerequisites
+- Install pigz
+    sudo apt install pigz
+
 ## Create a MySQL User with Appropriate Privileges
 
 The first thing we need to do is create a new MySQL user configured to handle backup tasks. We will only give this user the privileges it needs to copy the data safely while the system is running.
