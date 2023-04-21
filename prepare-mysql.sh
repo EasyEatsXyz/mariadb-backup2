@@ -76,7 +76,7 @@ main () {
     Then, recreate the data directory and  copy the backup files:
         
             sudo mkdir /var/lib/mysql
-            sudo mariabackup --copy-back --target-dir=${1}$(basename "${full_backup_dir}")
+            sudo mariabackup --copy-back --target-dir=${1}/$(basename "${full_backup_dir}")
         
     Afterward the files are copied, adjust the permissions and restart the service:
         
