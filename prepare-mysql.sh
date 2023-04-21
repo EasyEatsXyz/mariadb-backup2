@@ -81,7 +81,7 @@ main () {
     Afterward the files are copied, adjust the permissions and restart the service:
         
             sudo chown -R mysql:mysql /var/lib/mysql
-            sudo find /var/lib/mysql -type d -exec chmod 755 {} \\;
+            sudo find /var/lib/mysql -type d -exec chmod 755 {} \;
             sudo systemctl start mariadb
 EOF
     else
