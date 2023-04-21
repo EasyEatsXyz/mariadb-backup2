@@ -51,7 +51,7 @@ On Ubuntu 16.04 / Debian 8, a backup user and corresponding backup group is alre
 ```
 $ grep backup /etc/passwd /etc/group
 
-/etc/passwd:backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+/etc/passwd:backup:x:34:34:backup:/var/backup:/usr/sbin/nologin
 /etc/group:backup:x:34:
 
 ```
@@ -120,10 +120,10 @@ Now that MySQL and system backup users are available, we can begin to set up the
 
 Begin by creating a minimal MySQL configuration file that the backup script will use. This will contain the MySQL credentials for the MySQL user.
 
-Open a file at **/var/backups/mysql/.my.cnf** (where **/var/backups** is home of backup user) in your text editor:
+Open a file at **/var/backup/mysql/.my.cnf** (where **/var/backup** is home of backup user) in your text editor:
 
 ```
-$ sudo nano /var/backups/.my.cnf
+$ sudo nano /var/backup/.my.cnf
 ```
 
 Inside, start a ```[client]``` section and set the MySQL backup user and password user you defined within MySQL:
@@ -139,24 +139,24 @@ Save and close the file when you are finished.
 Give ownership of the file to the backup user and then restrict the permissions so that no other users can access the file:
 
 ```
-$ sudo chown backup /var/backups/.my.cnf
-$ sudo chmod 600 /var/backups/.my.cnf
+$ sudo chown backup /var/backup/.my.cnf
+$ sudo chmod 600 /var/backup/.my.cnf
 ```
 
 The backup user will be able to access this file to get the proper credentials but other users will be restricted.
 
 ### Create a Backup Root Directory
 
-Next, create a directory for the backup content. We will use **/var/backups/mysql** as the base directory for our backups:
+Next, create a directory for the backup content. We will use **/var/backup/mysql** as the base directory for our backups:
 
 ```
-$ sudo mkdir -p /var/backups/mysql
+$ sudo mkdir -p /var/backup/mysql
 ```
 
-Next, assign ownership of the **/var/backups/mysql** directory to the backup user and group ownership to the mysql group:
+Next, assign ownership of the **/var/backup/mysql** directory to the backup user and group ownership to the mysql group:
 
 ```
-$ sudo chown backup:mysql /var/backups/mysql
+$ sudo chown backup:mysql /var/backup/mysql
 ```
 
 The ```backup``` user should now be able to write backup data to this location.
