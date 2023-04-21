@@ -328,9 +328,10 @@ The backup type is listed as "incremental" and instead of starting from LSN 0 li
 
 Next, let's extract the backup files to create backup directories. Due to space and security considerations, this should normally only be done when you are ready to restore the data.
 
-We can extract the backups by passing the .xbstream backup files to the **extract-mysql.sh** script. We can run from any user with access to backups:
+We can extract the backups by passing the .xbstream backup files to the **extract-mysql.sh** script. We can run from any user with access to backups. Based on current script configuration, you must execute this command from the directory of the backup (i.e. 2021-07-23):
 
 ```
+cd /var/backup/mysql/2021-07-23
 sudo -u backup extract-mysql.sh /var/backup/mysql/2021-07-23/*.xbstream.gz
 
 Extraction complete! Backup directories have been extracted to the "restore" directory.
