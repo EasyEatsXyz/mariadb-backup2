@@ -6,7 +6,7 @@ Please check and follow the instructions below. Original instructions are taken 
 
 ## Prerequisites
 - Install pigz
-    sudo apt install pigz
+    ```sudo apt install pigz```
 
 ## Create a MySQL User with Appropriate Privileges
 
