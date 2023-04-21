@@ -373,10 +373,10 @@ Next, we will prepare the backup files. To do so, you must run **prepare-mysql.s
 
 If for any reason you don't want to restore some of the changes, now is your last chance to remove those incremental backup directories from the restore directory (the incremental backup files will still be available in the parent directory). Any remaining incremental- directories within the current directory will be applied to the full- backup directory.
 
-When you are ready, call the **prepare-mysql.sh** script:
+When you are ready, call the **prepare-mysql.sh** script (replacing your full path to the restore directory):
 
 ```
-prepare-mysql.sh ./restore
+sudo -u backup prepare-mysql.sh /var/backup/mysql/2021-07-23/restore
 
     Backup looks to be fully prepared.  Please check the "prepare-progress.log" file
     to verify before continuing.
