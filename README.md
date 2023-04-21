@@ -452,7 +452,7 @@ sudo systemctl start mariadb
 After restoring your data, it is important to go back and delete the restore directory. Future incremental backups cannot be applied to the full backup once it has been prepared, so we should remove it. Furthermore, the backup directories should not be left unencrypted on disk for security reasons:
 
 ```
-rm -rf ./restore
+sudo rm -rf ./restore
 ```
 
 The next time we need a clean copies of the backup directories, we can extract them again from the backup files.

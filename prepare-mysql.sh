@@ -86,7 +86,7 @@ main () {
 
     After restoring your data, you must delete the restore directory or future incremental backups cannot be applied.
 
-            rm -rf ./restore
+            sudo rm -rf ./restore
 EOF
     else
         error "It looks like something went wrong.  Check the \"${log_file}\" file for more information."
