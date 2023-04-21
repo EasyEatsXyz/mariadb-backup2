@@ -331,7 +331,7 @@ Next, let's extract the backup files to create backup directories. Due to space 
 We can extract the backups by passing the .xbstream backup files to the **extract-mysql.sh** script. We can run from any user with access to backups:
 
 ```
-extract-mysql.sh /var/backup/mysql/2021-07-23/*.xbstream.gz
+sudo -u backup extract-mysql.sh /var/backup/mysql/2021-07-23/*.xbstream.gz
 
 Extraction complete! Backup directories have been extracted to the "restore" directory.
 
