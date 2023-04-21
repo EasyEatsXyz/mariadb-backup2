@@ -83,6 +83,10 @@ main () {
             sudo chown -R mysql:mysql /var/lib/mysql
             sudo find /var/lib/mysql -type d -exec chmod 755 {} \;
             sudo systemctl start mariadb
+
+    After restoring your data, you must delete the restore directory or future incremental backups cannot be applied.
+
+            rm -rf ./restore
 EOF
     else
         error "It looks like something went wrong.  Check the \"${log_file}\" file for more information."
