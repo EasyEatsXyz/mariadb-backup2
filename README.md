@@ -181,8 +181,8 @@ Be sure to inspect the scripts after downloading to make sure they were retrieve
 chmod +x /tmp/{backup,extract,prepare}-mysql.sh
 sudo mv /tmp/{backup,extract,prepare}-mysql.sh /usr/local/bin
 sudo mkdir -p /var/lib/backup-mysql/
-sudo mv /tmp/common.inc /etc/backup-mysql/
 sudo mkdir -p /etc/backup-mysql/
+sudo mv /tmp/common.inc /etc/backup-mysql/
 sudo mv /tmp/config.inc /var/lib/backup-mysql/
 ```
 
