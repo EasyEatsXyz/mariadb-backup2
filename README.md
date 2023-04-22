@@ -184,6 +184,8 @@ sudo mkdir -p /var/lib/backup-mysql/
 sudo mkdir -p /etc/backup-mysql/
 sudo mv /tmp/common.inc /etc/backup-mysql/
 sudo mv /tmp/config.inc /var/lib/backup-mysql/
+sudo chmod +x /var/lib/backup-mysql/config.inc
+sudo chmod +x /etc/backup-mysql/common.inc
 ```
 
 ## Using the Backup and Restore Scripts
