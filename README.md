@@ -463,26 +463,22 @@ The next time we need a clean copies of the backup directories, we can extract t
 
 Now that we've verified that the backup and restore process are working smoothly, we should set up a cron job to automatically take regular backups.
 
-We will create a small script within the **/etc/cron.hourly** directory to automatically run our backup script and log the results. The cron process will automatically run this every hour:
+We will create a small script within the backup user crons to automatically run our backup script and log the results. The cron process will automatically run this every 15 minutes:
 
 ```
-sudo nano /etc/cron.hourly/backup-mysql
+sudo crontab -u backup -e
 ```
 
 Inside, we will call the backup script with the systemd-cat utility so that the output will be available in the journal. We'll mark them with a backup-mysql identifier so we can easily filter the logs:
 
 ```
-#!/bin/bash
-sudo -u backup systemd-cat --identifier=backup-mysql /usr/local/bin/backup-mysql.sh
+*/15 * *   *   *     /usr/local/bin/backup-mysql.sh
 ```
 
 Save and close the file when you are finished. Make the script executable by typing:
 
-```
-sudo chmod +x /etc/cron.hourly/backup-mysql
-```
 
-The backup script will now run hourly. The script itself will take care of cleaning up backups older than three days ago.
+The backup script will now run every 15 minutes. The script itself will take care of cleaning up backups older than three days ago.
 
 We can test the cron script by running it manually:
 
