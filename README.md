@@ -120,7 +120,7 @@ Now that MySQL and system backup users are available, we can begin to set up the
 
 Begin by creating a minimal MySQL configuration file that the backup script will use. This will contain the MySQL credentials for the MySQL user.
 
-Open a file at **/var/backup/mysql/.my.cnf** (where **/var/backup** is home of backup user) in your text editor:
+Open a file at **/var/backup/.my.cnf** (where **/var/backup** is home of backup user) in your text editor:
 
 ```
 sudo mkdir -p /var/backup
