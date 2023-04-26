@@ -4,6 +4,10 @@ This repository contains a few scripts for automating backups with mariabackup. 
 
 Please check and follow the instructions below. Original instructions are taken from <a href="https://www.digitalocean.com/community/tutorials/how-to-configure-mysql-backups-with-percona-xtrabackup-on-ubuntu-16-04">here</a>.
 
+## Prerequisites
+- Install pigz
+    ```sudo apt install pigz```
+
 ## Create a MySQL User with Appropriate Privileges
 
 The first thing we need to do is create a new MySQL user configured to handle backup tasks. We will only give this user the privileges it needs to copy the data safely while the system is running.
@@ -45,9 +49,9 @@ Now that we have a MySQL user to perform backups, we will ensure that a correspo
 On Ubuntu 16.04 / Debian 8, a backup user and corresponding backup group is already available. Confirm this by checking the /etc/passwd and /etc/group files with the following command:
 
 ```
-$ grep backup /etc/passwd /etc/group
+grep backup /etc/passwd /etc/group
 
-/etc/passwd:backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+/etc/passwd:backup:x:34:34:backup:/var/backup:/usr/sbin/nologin
 /etc/group:backup:x:34:
 
 ```
@@ -58,14 +62,14 @@ The /var/lib/mysql directory where the MySQL data is kept is owned by the mysql 
 Type the following commands to add the backup user to the mysql group and your sudo user to the backup group:
 
 ```
-$ sudo usermod -aG mysql backup
-$ sudo usermod -aG backup ${USER}
+sudo usermod -aG mysql backup
+sudo usermod -aG backup ${USER}
 ```
 
 If we check the /etc/group files again, you will see that your current user is added to the backup group and that the backup user is added to the mysql group:
 
 ```
-$ grep backup /etc/group
+grep backup /etc/group
 
 backup:x:34:sammy
 mysql:x:116:backup
@@ -74,13 +78,13 @@ mysql:x:116:backup
 The new group isn't available in our current session automatically. To re-evaluate the groups available to our sudo user, either log out and log back in, or type:
 
 ```
-$ exec su - ${USER}
+exec su - ${USER}
 ```
 
 You will be prompted for your sudo user's password to continue. Confirm that your current session now has access to the backup group by checking our user's groups again:
 
 ```
-$ id -nG
+id -nG
 
 sammy sudo backup
 ```
@@ -94,7 +98,7 @@ Next, we need to make the /var/lib/mysql directory and its subdirectories access
 To give the mysql group access to the MySQL data directories, type:
 
 ```
-$ sudo find /var/lib/mysql -type d -exec chmod 750 {} \;
+sudo find /var/lib/mysql -type d -exec chmod 750 {} \;
 ```
 
 > **Note**: MariaDB creates directories for new databases without read permission for group, so we need to create /etc/systemd/system/mariadb.service.d/umask.conf file with next contents:
@@ -116,10 +120,11 @@ Now that MySQL and system backup users are available, we can begin to set up the
 
 Begin by creating a minimal MySQL configuration file that the backup script will use. This will contain the MySQL credentials for the MySQL user.
 
-Open a file at **/var/backups/.my.cnf** (where **/var/backups** is home of backup user) in your text editor:
+Open a file at **/var/backup/.my.cnf** (where **/var/backup** is home of backup user) in your text editor:
 
 ```
-$ sudo nano /var/backups/.my.cnf
+sudo mkdir -p /var/backup
+sudo vim /var/backup/.my.cnf
 ```
 
 Inside, start a ```[client]``` section and set the MySQL backup user and password user you defined within MySQL:
@@ -135,24 +140,24 @@ Save and close the file when you are finished.
 Give ownership of the file to the backup user and then restrict the permissions so that no other users can access the file:
 
 ```
-$ sudo chown backup /var/backups/.my.cnf
-$ sudo chmod 600 /var/backups/.my.cnf
+sudo chown backup /var/backup/.my.cnf
+sudo chmod 600 /var/backup/.my.cnf
 ```
 
 The backup user will be able to access this file to get the proper credentials but other users will be restricted.
 
 ### Create a Backup Root Directory
 
-Next, create a directory for the backup content. We will use **/var/backups/mysql** as the base directory for our backups:
+Next, create a directory for the backup content. We will use **/var/backup/mysql** as the base directory for our backups:
 
 ```
-$ sudo mkdir -p /var/backups/mysql
+sudo mkdir -p /var/backup/mysql
 ```
 
-Next, assign ownership of the **/var/backups/mysql** directory to the backup user and group ownership to the mysql group:
+Next, assign ownership of the **/var/backup/mysql** directory to the backup user and group ownership to the mysql group:
 
 ```
-$ sudo chown backup:mysql /var/backups/mysql
+sudo chown backup:mysql /var/backup/mysql
 ```
 
 The ```backup``` user should now be able to write backup data to this location.
@@ -162,23 +167,25 @@ The ```backup``` user should now be able to write backup data to this location.
 You can download the scripts directly from GitHub by typing:
 
 ```
-$ cd /tmp
-$ curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/backup-mysql.sh
-$ curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/extract-mysql.sh
-$ curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/prepare-mysql.sh
-$ curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/common.inc
-$ curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/config.inc
+cd /tmp
+curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/backup-mysql.sh
+curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/extract-mysql.sh
+curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/prepare-mysql.sh
+curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/common.inc
+curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/config.inc
 ```
 
 Be sure to inspect the scripts after downloading to make sure they were retrieved successfully and that you approve of the actions they will perform. If you are satisfied, mark the scripts as executable and then move them into the **/usr/local/bin** directory by typing:
 
 ```
-$ chmod +x /tmp/{backup,extract,prepare}-mysql.sh
-$ sudo mv /tmp/{backup,extract,prepare}-mysql.sh /usr/local/bin
-$ sudo mkdir -p /var/lib/backup-mysql/
-$ sudo mv /tmp/common.inc /var/lib/backup-mysql/
-$ sudo mkdir -p /etc/backup-mysql/
-$ sudo mv /tmp/config.inc /etc/backup-mysql
+chmod +x /tmp/{backup,extract,prepare}-mysql.sh
+sudo mv /tmp/{backup,extract,prepare}-mysql.sh /usr/local/bin
+sudo mkdir -p /var/lib/backup-mysql/
+sudo mkdir -p /etc/backup-mysql/
+sudo mv /tmp/common.inc /etc/backup-mysql/
+sudo mv /tmp/config.inc /var/lib/backup-mysql/
+sudo chmod +x /var/lib/backup-mysql/config.inc
+sudo chmod +x /etc/backup-mysql/common.inc
 ```
 
 ## Using the Backup and Restore Scripts
@@ -226,7 +233,7 @@ In order to minimize chance of data loss, the script stops short of copying the 
 ### Perform a Full Backup
 
 ```
-$ sudo -u backup backup-mysql.sh
+sudo -u backup backup-mysql.sh
 
 Backup successful!
 Backup created at /var/backup/mysql/2021-07-23/full-07-23-2021_14-32-45.xbstream.gz
@@ -238,8 +245,8 @@ If everything went as planned, the script will execute correctly, indicate succe
 Let's move into the daily backup directory and view the contents:
 
 ```
-$ cd /var/backup/mysql/"$(date +%Y-%m-%d)"
-$ ls
+cd /var/backup/mysql/"$(date +%Y-%m-%d)"
+ls
 
 backup-progress.log  full-07-23-2021_14-32-45.xbstream.gz  xtrabackup_checkpoints  xtrabackup_info
 
@@ -250,7 +257,7 @@ Here, we see the actual backup file (**full-07-23-2021_14-32-45.xbstream.gz** in
 If we tail the **backup-progress.log**, we can confirm that the backup completed successfully.
 
 ```
-$ tail backup-progress.log
+tail backup-progress.log
 
 [00] 2021-07-23 14:32:47 Streaming ib_buffer_pool to <STDOUT>
 [00] 2021-07-23 14:32:47         ...done
@@ -270,7 +277,7 @@ If we look at the **xtrabackup_checkpoints** file, we can view information about
 This is a copy of a file that's included in each archive. Even though this copy is overwritten with each backup to represent the latest information, each original will still be available inside the backup archive.
 
 ```
-$ cat xtrabackup_checkpoints
+cat xtrabackup_checkpoints
 
 backup_type = full-backuped
 from_lsn = 0
@@ -288,7 +295,7 @@ Now that we have a full backup, we can take additional incremental backups. Incr
 The **backup-mysql.sh** script will take an incremental backup if a full backup for the same day exists:
 
 ```
-$ sudo -u backup backup-mysql.sh
+sudo -u backup backup-mysql.sh
 
 Backup successful!
 Backup created at /var/backup/mysql/2021-07-23/incremental-07-23-2021_14-36-25.xbstream.gz
@@ -298,8 +305,8 @@ Backup created at /var/backup/mysql/2021-07-23/incremental-07-23-2021_14-36-25.x
 Check the daily backup directory again to find the incremental backup archive:
 
 ```
-$ cd /var/backup/mysql/"$(date +%Y-%m-%d)"
-$ ls
+cd /var/backup/mysql/"$(date +%Y-%m-%d)"
+ls
 
 backup-progress.log                   incremental-07-23-2021_14-36-25.xbstream.gz  xtrabackup_info
 full-07-23-2021_14-32-45.xbstream.gz  xtrabackup_checkpoints
@@ -309,7 +316,7 @@ full-07-23-2021_14-32-45.xbstream.gz  xtrabackup_checkpoints
 The contents of the **xtrabackup_checkpoints** file now refer to the most recent incremental backup:
 
 ```
-$ cat xtrabackup_checkpoints
+cat xtrabackup_checkpoints
 
 backup_type = incremental
 from_lsn = 155365
@@ -323,10 +330,11 @@ The backup type is listed as "incremental" and instead of starting from LSN 0 li
 
 Next, let's extract the backup files to create backup directories. Due to space and security considerations, this should normally only be done when you are ready to restore the data.
 
-We can extract the backups by passing the .xbstream backup files to the **extract-mysql.sh** script. We can run from any user with access to backups:
+We can extract the backups by passing the .xbstream backup files to the **extract-mysql.sh** script. We can run from any user with access to backups. Based on current script configuration, you must execute this command from the directory of the backup (i.e. 2021-07-23):
 
 ```
-$ extract-mysql.sh /var/backup/mysql/2021-07-23/*.xbstream.gz
+cd /var/backup/mysql/2021-07-23
+sudo -u backup extract-mysql.sh /var/backup/mysql/2021-07-23/*.xbstream.gz
 
 Extraction complete! Backup directories have been extracted to the "restore" directory.
 
@@ -337,7 +345,7 @@ The above output indicates that the process was completed successfully. If we ch
 If we tail the extraction log, we can confirm that the latest backup was extracted successfully. The other backup success messages are displayed earlier in the file.
 
 ```
-$ tail extract-progress.log
+tail extract-progress.log
 
 [00] 2021-07-23 14:40:17 xtrabackup_binlog_info
 [00] 2021-07-23 14:40:17 ib_logfile0
@@ -353,8 +361,8 @@ Finished work on /var/backup/mysql/2021-07-23/incremental-07-23-2021_14-36-25.xb
 If we move into the restore directory, directories corresponding with the backup files we extracted are now available:
 
 ```
-$ cd restore
-$ ls -F
+cd restore
+ls -F
 
 full-07-23-2021_14-32-45.xbstream.gz/  incremental-07-23-2021_14-36-25.xbstream.gz/
 
@@ -368,10 +376,10 @@ Next, we will prepare the backup files. To do so, you must run **prepare-mysql.s
 
 If for any reason you don't want to restore some of the changes, now is your last chance to remove those incremental backup directories from the restore directory (the incremental backup files will still be available in the parent directory). Any remaining incremental- directories within the current directory will be applied to the full- backup directory.
 
-When you are ready, call the **prepare-mysql.sh** script:
+When you are ready, call the **prepare-mysql.sh** script (replacing your full path to the restore directory):
 
 ```
-$ prepare-mysql.sh ./restore
+sudo -u backup prepare-mysql.sh /var/backup/mysql/2021-07-23/restore
 
     Backup looks to be fully prepared.  Please check the "prepare-progress.log" file
     to verify before continuing.
@@ -407,19 +415,19 @@ If you are satisfied that everything is in order after reviewing the logs, you c
 First, stop the running MySQL process:
 
 ```
-$ sudo systemctl stop mariadb
+sudo systemctl stop mariadb
 ```
 
 Since the backup data may conflict with the current contents of the MySQL data directory, we should remove or move the **/var/lib/mysql** directory. If you have space on your filesystem, the best option is to move the current contents to the **/tmp** directory or elsewhere in case something goes wrong:
 
 ```
-$ sudo mv /var/lib/mysql/ /tmp
+sudo mv /var/lib/mysql/ /tmp
 ```
 
 Recreate an empty **/var/lib/mysql** directory. We will need to fix permissions in a moment, so we do not need to worry about that yet:
 
 ```
-$ sudo mkdir /var/lib/mysql
+sudo mkdir /var/lib/mysql
 ```
 
 Now, we can copy the full backup to the MySQL data directory using the **mariabackup** utility. Substitute the path to your prepared full backup in the command below:
@@ -431,8 +439,8 @@ sudo mariabackup --copy-back --target-dir=./restore/full-07-23-2021_14-32-45.xbs
 A running log of the files being copied will display throughout the process. Once the files are in place, we need to fix the ownership and permissions again so that the MySQL user and group own and can access the restored structure:
 
 ```
-$ sudo chown -R mysql:mysql /var/lib/mysql
-$ sudo find /var/lib/mysql -type d -exec chmod 750 {} \;
+sudo chown -R mysql:mysql /var/lib/mysql
+sudo find /var/lib/mysql -type d -exec chmod 750 {} \;
 ``` 
 
 Our restored files are now in the MySQL data directory.
@@ -440,13 +448,13 @@ Our restored files are now in the MySQL data directory.
 Start up MySQL again to complete the process:
 
 ```
-$ sudo systemctl start mariadb
+sudo systemctl start mariadb
 ```
 
 After restoring your data, it is important to go back and delete the restore directory. Future incremental backups cannot be applied to the full backup once it has been prepared, so we should remove it. Furthermore, the backup directories should not be left unencrypted on disk for security reasons:
 
 ```
-$ rm -rf ./restore
+sudo rm -rf ./restore
 ```
 
 The next time we need a clean copies of the backup directories, we can extract them again from the backup files.
@@ -455,26 +463,22 @@ The next time we need a clean copies of the backup directories, we can extract t
 
 Now that we've verified that the backup and restore process are working smoothly, we should set up a cron job to automatically take regular backups.
 
-We will create a small script within the **/etc/cron.hourly** directory to automatically run our backup script and log the results. The cron process will automatically run this every hour:
+We will create a small script within the backup user crons to automatically run our backup script and log the results. The cron process will automatically run this every 15 minutes:
 
 ```
-$ sudo nano /etc/cron.hourly/backup-mysql
+sudo crontab -u backup -e
 ```
 
 Inside, we will call the backup script with the systemd-cat utility so that the output will be available in the journal. We'll mark them with a backup-mysql identifier so we can easily filter the logs:
 
 ```
-#!/bin/bash
-sudo -u backup systemd-cat --identifier=backup-mysql /usr/local/bin/backup-mysql.sh
+*/15 * *   *   *     /usr/local/bin/backup-mysql.sh
 ```
 
 Save and close the file when you are finished. Make the script executable by typing:
 
-```
-$ sudo chmod +x /etc/cron.hourly/backup-mysql
-```
 
-The backup script will now run hourly. The script itself will take care of cleaning up backups older than three days ago.
+The backup script will now run every 15 minutes. The script itself will take care of cleaning up backups older than three days ago.
 
 We can test the cron script by running it manually:
 
@@ -485,7 +489,7 @@ sudo /etc/cron.hourly/backup-mysql
 After it completes, check the journal for the log messages by typing:
 
 ```
-$ sudo journalctl -t backup-mysql
+sudo journalctl -t backup-mysql
 
 июл 23 00:00:04 mdb99.*****.tech backup-mysql[8915]: Backup successful!
 июл 23 00:00:04 mdb99.*****.tech backup-mysql[8915]: Backup created at /var/backup/mysql/2021-07-24/full-07-24-2021_00-00-02.xbstream.gz
