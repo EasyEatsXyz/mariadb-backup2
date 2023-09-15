@@ -168,11 +168,11 @@ You can download the scripts directly from GitHub by typing:
 
 ```
 cd /tmp
-curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/backup-mysql.sh
-curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/extract-mysql.sh
-curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/prepare-mysql.sh
-curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/common.inc
-curl -LO https://raw.githubusercontent.com/capcom6/mariadb-backup/master/config.inc
+curl -LO https://raw.githubusercontent.com/EasyEatsXyz/mariadb-backup2/master/backup-mysql.sh
+curl -LO https://raw.githubusercontent.com/EasyEatsXyz/mariadb-backup2/master/extract-mysql.sh
+curl -LO https://raw.githubusercontent.com/EasyEatsXyz/mariadb-backup2/master/prepare-mysql.sh
+curl -LO https://raw.githubusercontent.com/EasyEatsXyz/mariadb-backup2/master/common.inc
+curl -LO https://raw.githubusercontent.com/EasyEatsXyz/mariadb-backup2/master/config.inc
 ```
 
 Be sure to inspect the scripts after downloading to make sure they were retrieved successfully and that you approve of the actions they will perform. If you are satisfied, mark the scripts as executable and then move them into the **/usr/local/bin** directory by typing:
